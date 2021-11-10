@@ -5,12 +5,7 @@ import 'dart:async';
 void sort(List<Object> array) async {
 	List<int> help = [];
 	SendPort senPort = array.last as SendPort;
-	if (array.last is int){
-		array.forEach((elem){
-			help.add(elem as int);
-		});
-	} else
-		help = array.first as List<int>;
+	help = array.first as List<int>;
 	int middle = help.length ~/ 2;
 
 	if (help.length < 2)
