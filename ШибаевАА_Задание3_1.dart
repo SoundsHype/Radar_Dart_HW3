@@ -2,55 +2,55 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:async';
 
-void sort(List<Object> array) async {
+List<int> merge(List<List<int>> a){
+	List <int> out = [];
+	while (!a.isEmpty){
+		int min = a[0][0];
+		for (int i = 0; i < a.length; i++)
+			if (a[i][0] < min)
+				min = a[i][0];
+		for (int i = 0; i < a.length; i++)
+			if (a[i][0] == min){
+				out.add(a[i][0]);
+				a[i].removeAt(0);
+				break;
+			}
+		for (int i = 0; i < a.length; i++)
+			if (a[i].isEmpty)
+				a.removeAt(i);
+	}
+	return out;
+}
+
+void sort(List<dynamic> array) async {
 	List<int> help = [];
 	SendPort senPort = array.last as SendPort;
-	if (array.last is int){
-		array.forEach((elem){
-			help.add(elem as int);
-		});
-	} else
-		help = array.first as List<int>;
-	int middle = help.length ~/ 2;
+
+	help = array.first as List<int>;
 
 	if (help.length < 2)
 		senPort.send(help);
 	else {
 		ReceivePort getPort = ReceivePort();
-		Isolate isolate1 = await Isolate.spawn(sort, [help.sublist(0, middle), getPort.sendPort]);
-		Isolate isolate2 = await Isolate.spawn(sort, [help.sublist(middle, help.length), getPort.sendPort]);
-		List<int> a = [], b = [];
-		int i = 0;
+		List<Isolate> isol = [];
+		int N = 20, position = 0;
+		if (help.length < N)
+			N = help.length;
+
+		int count = help.length ~/ N;
+		for (int i = 0; i < N - 1 ; i++)
+			isol.add(await Isolate.spawn(sort, [help.sublist(position, position += count), getPort.sendPort]));
+		isol.add(await Isolate.spawn(sort, [help.sublist(position, help.length), getPort.sendPort]));
+
+		List<List<int>> all = [];
 		getPort.listen((message){
-			switch (i){
-				case 0:
-					a = message;
-				break;
-				case 1:
-					b = message;
-					getPort.close(); 
-				break;
-			}
-			i++;
+			all.add(message);
+			if (all.length == isol.length)
+				getPort.close(); 
 		}, onDone: () {
-			help = [];
-			while (!(a.isEmpty) || !(b.isEmpty)){
-				if (a.isEmpty){
-					help.add(b.first);
-					b.removeAt(0);
-				} else if (b.isEmpty){
-						help.add(a.first);
-						a.removeAt(0);
-					} else if (a.first < b.first){
-							help.add(a.first);
-							a.removeAt(0);
-						} else {
-							help.add(b.first);
-							b.removeAt(0);
-						}
-			}
-			senPort.send(help);
+			senPort.send(merge(all));
 		});
+
 	}
 }
 
@@ -85,9 +85,9 @@ void main(){
 	sort([array.getArray, mainIsolatePort.sendPort]);
 
 	mainIsolatePort.listen((message){
-			array.changeArray = message;
-			mainIsolatePort.close();  
+		array.changeArray = message;
+		mainIsolatePort.close();  
 	}, onDone: (){
-	array.writeIn("array.txt");
+		array.writeIn("array.txt");
 	});
 }
