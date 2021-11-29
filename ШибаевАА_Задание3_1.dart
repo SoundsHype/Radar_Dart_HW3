@@ -25,8 +25,8 @@ List<int> merge(List<List<int>> a){
 void sort(List<dynamic> array) async {
 	List<int> help = [];
 	SendPort senPort = array.last as SendPort;
-
 	help = array.first as List<int>;
+	int middle = help.length ~/ 2;
 
 	if (help.length < 2)
 		senPort.send(help);
